@@ -1,6 +1,6 @@
 package com.example.pp1.Entity;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,7 +25,7 @@ public class PedidoDia {
     private Integer id_pedido_dia;
 
     @Column(name="fecha_entrega")
-    private Date fecha_entrega;
+    private LocalDate fechaEntrega;
 
     @ManyToOne
     @JoinColumn(name="id_pedido", nullable=false)
@@ -33,7 +33,7 @@ public class PedidoDia {
 
     @ManyToOne
     @JoinColumn(name="id_menu_dia", nullable=false)
-    private MenuDia menu_dia;
+    private MenuDia menuDia;
     
     @ManyToOne
     @JoinColumn(name="id_plato", nullable=false)

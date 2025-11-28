@@ -18,26 +18,27 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name="MenuDia")
+@Table(name = "menuDia") // o directamente sin name, y dejas que la estrategia de nombres haga su trabajo
 public class MenuDia {
+
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-    @Column(name="id_menu_dia")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_menu_dia")
     private Integer id_menu_dia;
 
-    @Column(name="fecha")
+    @Column(name = "fecha")
     private LocalDate fecha;
 
-    @Column(name="descripcion")
+    @Column(name = "descripcion")
     private String descripcion;
 
-    @Column(name="publicado")
+    @Column(name = "publicado")
     private Boolean publicado;
 
-    @Column(name="stock_total")
+    @Column(name = "stock_total")
     private Integer stock_total;
 
     @ManyToOne
-    @JoinColumn(name="id_usuario", nullable=false)
-    private Usuario usuario;
+    @JoinColumn(name = "id_usuario_creador", nullable = false)
+    private Usuario usuarioCreador;
 }

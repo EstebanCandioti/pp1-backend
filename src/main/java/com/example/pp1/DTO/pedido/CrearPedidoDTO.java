@@ -1,33 +1,24 @@
-package com.example.pp1.Entity;
+package com.example.pp1.DTO.pedido;
 
 import java.time.LocalDate;
 
+import com.example.pp1.Entity.Pedido.EstadosPedidos;
+import com.example.pp1.Entity.Usuario;
+
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
 @Setter
+@Getter
 @NoArgsConstructor
-@Entity
-@Table(name="pedido")
-public class Pedido {
-    @Id
-    @GeneratedValue(strategy= GenerationType.IDENTITY)
-    @Column(name="id_pedido")
-    private Integer id_pedido;
-
-    @Column(name="fecha_pedido")
+public class CrearPedidoDTO {
+     @Column(name="fecha_pedido")
     private LocalDate fecha_pedido;
 
     @Enumerated(EnumType.STRING)
@@ -40,6 +31,4 @@ public class Pedido {
     @ManyToOne(optional=false)
     @JoinColumn(name="id_usuario", nullable=false)
     private Usuario usuario;
-
-    public enum EstadosPedidos {Pendiente, Confirmado, Cancelado}
 }

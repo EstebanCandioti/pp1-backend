@@ -1,13 +1,19 @@
 package com.example.pp1.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
 import com.example.pp1.Entity.Pedido;
+import com.example.pp1.Entity.Usuario;
 
 public interface  PedidoRepository extends JpaRepository<Pedido, Integer> {
-    @Query("SELECT p from Pedido p WHERE p.usuario.id_usuario=:id_usuario")
-    List<Pedido> findById_usuario(Integer id_usuario);
+    List<Pedido> findByUsuario_IdUsuario(Integer idUsuario);
+    
+    List<Pedido> findByUsuario_IdUsuarioAndEstado(Integer idUsuario, Pedido.EstadosPedidos estado);
+
+    boolean existsByUsuarioAndFechaPedido(Usuario usuario, LocalDate fechaPedido);
+
+    List<Pedido> findByUsuario_IdUsuarioAndFechaPedidoBetween(Integer idUsuario, LocalDate inicio, LocalDate fin);
 }

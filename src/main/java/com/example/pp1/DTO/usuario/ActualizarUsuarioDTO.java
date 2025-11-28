@@ -1,4 +1,6 @@
-package com.example.pp1.DTO;
+package com.example.pp1.DTO.usuario;
+
+import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,4 +30,6 @@ public class ActualizarUsuarioDTO {
     @NotNull(message="La direccion no puede quedar vacia")
     @NotBlank(message = "La dirección no puede quedar vacia")
     private String direccion;
+
+    private List<String> diasAsistencia; // opcional
 }

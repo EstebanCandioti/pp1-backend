@@ -1,5 +1,7 @@
 package com.example.pp1.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -7,29 +9,25 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@NoArgsConstructor
-@Setter
 @Getter
+@Setter
+@NoArgsConstructor
 @Entity
-public class MenuPlato {
-    
+@Table(name="usuario_asistencia")
+public class UsuarioAsistencia {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_menu_plato")
-    private Integer idMenuPlato;
-
+    private Integer id; 
     @ManyToOne
-    @JoinColumn(name = "id_plato", nullable = false)
-    private Plato plato;
+    @JoinColumn(name = "id_usuario", nullable = false)
+    @JsonBackReference
+    private Usuario usuario;    
+    @Column(name = "dia", nullable = false)
+    private String dia; // LUNES, MARTES, etc.
 
-    @ManyToOne
-    @JoinColumn(name = "id_menu_dia", nullable = false)
-    private MenuDia menuDia;
-
-    @Column(name = "stock_disponible", nullable = false)
-    private Integer stockDisponible;
 }

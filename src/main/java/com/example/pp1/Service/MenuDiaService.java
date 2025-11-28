@@ -1,19 +1,21 @@
 package com.example.pp1.Service;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import com.example.pp1.DTO.ActualizarMenuDiaDTO;
-import com.example.pp1.DTO.CrearMenuDiaDTO;
+import com.example.pp1.DTO.menuDIa.ActualizarMenuDiaDTO;
+import com.example.pp1.DTO.menuDIa.CrearMenuDiaDTO;
 import com.example.pp1.Entity.MenuDia;
 import com.example.pp1.repository.MenuDiaRepository;
 
 @Service
 public class MenuDiaService {
     
-    private MenuDiaRepository repo;
-    private UsuarioService serviceUsuario;
+    private final MenuDiaRepository repo;
+    private final UsuarioService serviceUsuario;
 
     public MenuDiaService(MenuDiaRepository repo, UsuarioService serviceUsuario){
         this.repo=repo;
@@ -25,7 +27,7 @@ public class MenuDiaService {
             return respuestaPeticiones.falta_usuario;
         }
         MenuDia nuevoMenu = new MenuDia();
-        nuevoMenu.setUsuario(serviceUsuario.obtenerUsuario(menu.getId_usuario()).get());
+        nuevoMenu.setUsuarioCreador(serviceUsuario.obtenerUsuario(menu.getId_usuario()).get());
         nuevoMenu.setFecha(menu.getFecha());
         nuevoMenu.setDescripcion(menu.getDescripcion());
         nuevoMenu.setPublicado(menu.getPublicado());
@@ -49,13 +51,29 @@ public class MenuDiaService {
 
     public respuestaPeticiones cambiarEstadoMenuDia(Integer id){
         Optional<MenuDia> menu = repo.findById(id);
-        if(menu.isEmpty()){
+        if(!menu.isPresent()){
             return respuestaPeticiones.falta_menu;
         }
         Boolean estado= menu.get().getPublicado();
         menu.get().setPublicado(!estado);
         repo.save(menu.get());
         return respuestaPeticiones.menu_actualizado;
+    }
+
+    public List<MenuDia> obtenerMenusDia(){
+        List<MenuDia> menus = repo.findAll();
+        return menus;
+    }
+
+    public Optional<MenuDia> obtenerMenuDia(Integer id){
+        Optional<MenuDia> menu= repo.findById(id);
+        return menu;
+
+    }
+
+    public List<MenuDia> obtenerMenusDiaFecha(LocalDate fecha){
+        List<MenuDia> menus = repo.findByFecha(fecha);
+        return menus;
     }
 
     public enum respuestaPeticiones{

@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.pp1.DTO.ActualizarUsuarioDTO;
-import com.example.pp1.DTO.RegistrarUsuarioDTO;
+import com.example.pp1.DTO.usuario.ActualizarUsuarioDTO;
+import com.example.pp1.DTO.usuario.RegistrarUsuarioDTO;
 import com.example.pp1.Entity.Usuario;
 import com.example.pp1.Service.UsuarioService;
 
@@ -71,9 +71,9 @@ public class UsuarioController {
     public ResponseEntity<String> estadoUsuario(@PathVariable Integer id) {
         UsuarioService.resultadoPeticiones respuesta = service.estadoUsuario(id);
         if(respuesta== UsuarioService.resultadoPeticiones.usuario_activado){
-            return ResponseEntity.status(201).body("El usuario fue activado");
+            return ResponseEntity.status(200).body("El usuario fue activado");
         }else if (respuesta==UsuarioService.resultadoPeticiones.usuario_desactivado){
-            return ResponseEntity.status(204).body("El usuario fue desactivado");
+            return ResponseEntity.status(200).body("El usuario fue desactivado");
         }
         return ResponseEntity.badRequest().body("No se encontro el usuario");
     }

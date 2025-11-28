@@ -1,4 +1,6 @@
-package com.example.pp1.DTO;
+package com.example.pp1.DTO.usuario;
+
+import java.util.List;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -41,4 +43,9 @@ public class RegistrarUsuarioDTO {
 
     @NotNull
     private Boolean usuarioRestaurante;
+
+    @NotNull(message = "Debe indicar días de asistencia")
+    @Size(min = 1, message = "Debe seleccionar al menos un día de asistencia")
+    private List<String> diasAsistencia; // ["LUNES", "MIERCOLES", ...]
+
 }

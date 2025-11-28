@@ -1,53 +1,154 @@
 package com.example.pp1.controller;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.pp1.DTO.pedido.CrearPedidoDTO;
+import com.example.pp1.DTO.pedido.ModificarPedidoDTO;
 import com.example.pp1.Entity.Pedido;
-import com.example.pp1.repository.PedidoRepository;
+import com.example.pp1.Service.PedidoService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/pedidos")
 public class PedidoController {
+
     @Autowired
-    private PedidoRepository repo;
+    private PedidoService service;
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> obtenerPedido(@PathVariable Integer id) {
-        Optional<Pedido> pedido = repo.findById(id);
-        if (repo.findById(id).isPresent()) {
-            return ResponseEntity.ok(pedido.get());
-        } else {
-            return ResponseEntity.notFound().build();
+    // 1️⃣ Crear pedido
+    @PostMapping
+    public ResponseEntity<String> crearPedido(
+            @Valid @RequestBody CrearPedidoDTO dto,
+            BindingResult resultado) {
+
+        if (resultado.hasErrors()) {
+            String errores = resultado.getFieldErrors().stream()
+                    .map(FieldError::getDefaultMessage)
+                    .collect(Collectors.joining(" , "));
+            return ResponseEntity.badRequest().body(errores);
         }
-    }
 
-    @GetMapping("/lista")
-    public List<Pedido> obtenerListaPedidos() {
-        return repo.findAll();
-    }
+        PedidoService.respuestaPeticiones respuesta = service.crearPedido(dto);
 
-    @GetMapping("/lista/{id}")
-    public List<Pedido> getMethodName(@PathVariable Integer id) {
-        return repo.findById_usuario(id);
-    }
-
-    @PostMapping("/guardar")
-    public ResponseEntity<?> guardarPedido(@RequestBody Pedido pedido) {
-        Optional<Pedido> ped = repo.findById(pedido.getId_pedido());
-        if (ped.isPresent()) {
-            repo.save(pedido);
-            return ResponseEntity.ok("El pedido fue guardado");
+        if (respuesta == PedidoService.respuestaPeticiones.repetido_pedido) {
+            return ResponseEntity.badRequest().body("Ya existe un pedido para ese usuario en esa fecha");
         }
-        return ResponseEntity.notFound().build();
+
+        if (respuesta == PedidoService.respuestaPeticiones.ok) {
+            return ResponseEntity.ok("El pedido se creó correctamente");
+        }
+
+        return ResponseEntity.badRequest().body("No se pudo crear el pedido");
+    }
+
+    // 2️⃣ Confirmar un pedido (individual)
+    @PutMapping("/{id}/confirmar")
+    public ResponseEntity<String> confirmarPedido(@PathVariable Integer id) {
+        PedidoService.respuestaPeticiones respuesta = service.confirmarPedido(id);
+
+        if (respuesta == PedidoService.respuestaPeticiones.falta_pedido) {
+            return ResponseEntity.status(404).body("No se encontró el pedido");
+        }
+
+        return ResponseEntity.ok("El pedido se confirmó correctamente");
+    }
+
+    // 3️⃣ Cancelar pedido + reponer stock del menú/plato
+    @PutMapping("/{id}/cancelar")
+    public ResponseEntity<String> cancelarPedido(
+            @PathVariable Integer id,
+            @RequestParam Integer idMenuPlato) {
+
+        PedidoService.respuestaPeticiones respuesta = service.cancelarPedido(id, idMenuPlato);
+
+        if (respuesta == PedidoService.respuestaPeticiones.falta_pedido) {
+            return ResponseEntity.status(404).body("No se encontró el pedido");
+        }
+
+        return ResponseEntity.ok("El pedido se canceló correctamente");
+    }
+
+    // 4️⃣ Modificar pedido (solo si no está confirmado)
+    @PutMapping("/{id}")
+    public ResponseEntity<String> modificarPedido(
+            @PathVariable Integer id,
+            @Valid @RequestBody ModificarPedidoDTO dto,
+            BindingResult resultado) {
+
+        if (resultado.hasErrors()) {
+            String errores = resultado.getFieldErrors().stream()
+                    .map(FieldError::getDefaultMessage)
+                    .collect(Collectors.joining(" , "));
+            return ResponseEntity.badRequest().body(errores);
+        }
+
+        dto.setId(id); // aseguramos que el id venga de la URL
+
+        PedidoService.respuestaPeticiones respuesta = service.modificarPedido(dto);
+
+        if (respuesta == PedidoService.respuestaPeticiones.falta_pedido) {
+            return ResponseEntity.status(404).body("No se encontró el pedido");
+        }
+
+        if (respuesta == PedidoService.respuestaPeticiones.no_editable_pedido) {
+            return ResponseEntity.badRequest().body("No se puede modificar un pedido confirmado");
+        }
+
+        return ResponseEntity.ok("El pedido se modificó correctamente");
+    }
+
+    // 5️⃣ Listar pedidos por usuario
+    @GetMapping("/usuario/{idUsuario}")
+    public ResponseEntity<?> pedidosPorUsuario(@PathVariable Integer idUsuario) {
+        List<Pedido> pedidos = service.pedidoPorUsuario(idUsuario);
+        if (pedidos.isEmpty()) {
+            return ResponseEntity.status(404).body("No se encontraron pedidos para este usuario");
+        }
+        return ResponseEntity.ok(pedidos);
+    }
+
+    // 6️⃣ Listar pedidos por usuario + estado
+    @GetMapping("/usuario/{idUsuario}/estado/{estado}")
+    public ResponseEntity<?> pedidosPorUsuarioYEstado(
+            @PathVariable Integer idUsuario,
+            @PathVariable Pedido.EstadosPedidos estado) {
+
+        List<Pedido> pedidos = service.pedidoPorUsuarioYEstado(idUsuario, estado);
+        if (pedidos.isEmpty()) {
+            return ResponseEntity.status(404).body("No se encontraron pedidos para este usuario con ese estado");
+        }
+        return ResponseEntity.ok(pedidos);
+    }
+
+    // 7️⃣ Confirmar todos los pedidos de una semana para un usuario
+    @PutMapping("/usuario/{idUsuario}/confirmar-semana")
+    public ResponseEntity<String> confirmarSemana(
+            @PathVariable Integer idUsuario,
+            @RequestParam LocalDate fechaReferencia) {
+
+        PedidoService.respuestaPeticiones respuesta =
+                service.confirmarSemana(idUsuario, fechaReferencia);
+
+        if (respuesta == PedidoService.respuestaPeticiones.falta_pedido) {
+            return ResponseEntity.status(404).body("No hay pedidos para esa semana");
+        }
+
+        return ResponseEntity.ok("Se confirmaron los pedidos de la semana correctamente");
     }
 }

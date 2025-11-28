@@ -5,8 +5,8 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import com.example.pp1.DTO.ActualizarUsuarioDTO;
-import com.example.pp1.DTO.RegistrarUsuarioDTO;
+import com.example.pp1.DTO.usuario.ActualizarUsuarioDTO;
+import com.example.pp1.DTO.usuario.RegistrarUsuarioDTO;
 import com.example.pp1.Entity.Usuario;
 import com.example.pp1.repository.UsuarioRepository;
 
@@ -14,7 +14,7 @@ import com.example.pp1.repository.UsuarioRepository;
 public class UsuarioService {
  
     
-    private UsuarioRepository repo;
+    private final UsuarioRepository repo;
 
     public UsuarioService (UsuarioRepository repo){
         this.repo=repo;
