@@ -31,4 +31,7 @@ public class Plato {
 
     @Column(name="categoria")
     private String categoria;
+
+    @Column(name="activo", nullable=false) 
+    private Boolean activo = true;
 }

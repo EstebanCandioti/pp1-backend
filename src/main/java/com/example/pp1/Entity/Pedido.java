@@ -25,10 +25,10 @@ public class Pedido {
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     @Column(name="id_pedido")
-    private Integer id_pedido;
+    private Integer idPedido;
 
     @Column(name="fecha_pedido")
-    private LocalDate fecha_pedido;
+    private LocalDate fechaPedido;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)

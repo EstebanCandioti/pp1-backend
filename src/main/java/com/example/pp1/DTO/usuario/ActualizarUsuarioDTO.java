@@ -13,6 +13,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ActualizarUsuarioDTO {
     
+    @NotNull(message="El id del usuario es obligatorio")
     private Integer id;
     
     @NotNull(message="El nombre no puede quedar vacio")
@@ -31,5 +32,5 @@ public class ActualizarUsuarioDTO {
     @NotBlank(message = "La dirección no puede quedar vacia")
     private String direccion;
 
-    private List<String> diasAsistencia; // opcional
+    private List<String> diasAsistencia; 
 }

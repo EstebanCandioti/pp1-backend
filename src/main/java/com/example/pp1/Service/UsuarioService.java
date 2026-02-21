@@ -1,5 +1,6 @@
 package com.example.pp1.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.example.pp1.DTO.usuario.ActualizarUsuarioDTO;
 import com.example.pp1.DTO.usuario.RegistrarUsuarioDTO;
 import com.example.pp1.Entity.Usuario;
+import com.example.pp1.Entity.UsuarioAsistencia;
 import com.example.pp1.repository.UsuarioRepository;
 
 @Service
@@ -50,6 +52,20 @@ public class UsuarioService {
         user.setDireccion(usuario.getDireccion());
         user.setEs_usuario_restaurante(usuario.getUsuarioRestaurante());
         user.setTelefono(usuario.getTelefono());
+        user.setPassword(usuario.getPassword());
+        List<UsuarioAsistencia> dias = new ArrayList<>();
+        if (usuario.getDiasAsistencia() != null && !usuario.getDiasAsistencia().isEmpty()) {
+            for (String dia : usuario.getDiasAsistencia()) {
+                UsuarioAsistencia asistencia = new UsuarioAsistencia();
+                asistencia.setDia(dia);
+                asistencia.setUsuario(user);
+                dias.add(asistencia);
+            }
+        } else {
+            // acá devolvés falta de asistencia, según tu enum de resultado
+            return resultadoPeticiones.falta_usuario; // o lo que tengas para "sin dias"
+        }
+        user.setDiasAsistencia(dias);
         repo.save(user);
         return resultadoPeticiones.ok;
     }
@@ -57,10 +73,27 @@ public class UsuarioService {
     public resultadoPeticiones actualizarUsuario(ActualizarUsuarioDTO usuario){
         Optional<Usuario> usu = repo.findById(usuario.getId());
         if (usu.isPresent()) {
+            if(usu.get().getActivo()==false){
+                return resultadoPeticiones.usuario_inactivo;
+            }
             usu.get().setApellido(usuario.getApellido());
             usu.get().setNombre(usuario.getNombre());
             usu.get().setDireccion(usuario.getDireccion());
             usu.get().setTelefono(usuario.getTelefono());
+            List<UsuarioAsistencia> diasActuales = usu.get().getDiasAsistencia();
+            if(diasActuales == null){
+                diasActuales= new ArrayList<>();
+                usu.get().setDiasAsistencia(diasActuales);
+            }else{
+                diasActuales.clear();
+            }
+
+            for(String dia: usuario.getDiasAsistencia()){
+                UsuarioAsistencia asistencia = new UsuarioAsistencia();
+                asistencia.setDia(dia);
+                asistencia.setUsuario(usu.get());
+                diasActuales.add(asistencia);
+            }
             repo.save(usu.get());
             return resultadoPeticiones.ok;
         } else {
@@ -82,14 +115,17 @@ public class UsuarioService {
 
     public resultadoPeticiones login(String email, String password){
         Optional<Usuario> user = repo.findByCorreoIgnoreCase(email);
-        if(user.isPresent()){
-            if(user.get().getPassword().equals(password)){
-                return resultadoPeticiones.logeado;
-            }else{
-                return  resultadoPeticiones.password_incorrecta;
-            }
+        if(user.isEmpty()){
+            return resultadoPeticiones.falta_usuario;
         }
-        return resultadoPeticiones.falta_usuario;
+        if (user.get().getActivo() == false) {
+            return resultadoPeticiones.usuario_inactivo;
+        }
+        if(user.get().getPassword().equals(password)){
+            return resultadoPeticiones.logeado;
+        }else{
+            return  resultadoPeticiones.password_incorrecta;
+        }
     }
     
 
@@ -100,7 +136,8 @@ public class UsuarioService {
         usuario_desactivado,
         usuario_activado,
         logeado,
-        password_incorrecta
+        password_incorrecta,
+        usuario_inactivo
 
     }
 }

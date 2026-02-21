@@ -12,7 +12,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CrearPedidoDiaDTO{
     
-    @NotNull(message = "El id del pedido no puede quedar vacío")
     private Integer idPedido;
 
     @NotNull(message = "El id del menú del día no puede quedar vacío")

@@ -13,7 +13,9 @@ public interface  PedidoRepository extends JpaRepository<Pedido, Integer> {
     
     List<Pedido> findByUsuario_IdUsuarioAndEstado(Integer idUsuario, Pedido.EstadosPedidos estado);
 
-    boolean existsByUsuarioAndFechaPedido(Usuario usuario, LocalDate fechaPedido);
+    boolean existsByUsuarioAndFechaPedidoAndEstadoNot(Usuario usuario, LocalDate fechaPedido, Pedido.EstadosPedidos estado);
 
     List<Pedido> findByUsuario_IdUsuarioAndFechaPedidoBetween(Integer idUsuario, LocalDate inicio, LocalDate fin);
+
+    List<Pedido> findByFechaPedidoBetween(LocalDate fechaInicio, LocalDate fechaFin);
 }

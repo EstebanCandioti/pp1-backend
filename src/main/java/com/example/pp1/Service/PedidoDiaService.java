@@ -1,5 +1,6 @@
 package com.example.pp1.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -9,9 +10,11 @@ import org.springframework.stereotype.Service;
 import com.example.pp1.DTO.pedidoDia.CrearPedidoDiaDTO;
 import com.example.pp1.DTO.pedidoDia.ModificarPedidoDiaDTO;
 import com.example.pp1.DTO.pedidoDia.PedidoDiaDTO;
+import com.example.pp1.DTO.pedidoSemanal.PedidoSemanaItemDTO;
 import com.example.pp1.Entity.MenuDia;
 import com.example.pp1.Entity.MenuPlato;
 import com.example.pp1.Entity.Pedido;
+import com.example.pp1.Entity.Pedido.EstadosPedidos;
 import com.example.pp1.Entity.PedidoDia;
 import com.example.pp1.Entity.Plato;
 import com.example.pp1.repository.MenuDiaRepository;
@@ -19,6 +22,8 @@ import com.example.pp1.repository.MenuPlatoRepository;
 import com.example.pp1.repository.PedidoDiaRepository;
 import com.example.pp1.repository.PedidoRepository;
 import com.example.pp1.repository.PlatoRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class PedidoDiaService {
@@ -40,6 +45,7 @@ public class PedidoDiaService {
     private final PlatoRepository platoRepo;
     private final MenuPlatoRepository menuPlatoRepo;
     private final MenuPlatoService menuPlatoService;
+    private final NotificacionService notificacionService;
 
     public PedidoDiaService(
             PedidoDiaRepository pedidoDiaRepo,
@@ -47,13 +53,15 @@ public class PedidoDiaService {
             MenuDiaRepository menuDiaRepo,
             PlatoRepository platoRepo,
             MenuPlatoRepository menuPlatoRepo,
-            MenuPlatoService menuPlatoService) {
+            MenuPlatoService menuPlatoService,
+            NotificacionService notificacionService) {
         this.pedidoDiaRepo = pedidoDiaRepo;
         this.pedidoRepo = pedidoRepo;
         this.menuDiaRepo = menuDiaRepo;
         this.platoRepo = platoRepo;
         this.menuPlatoRepo = menuPlatoRepo;
         this.menuPlatoService = menuPlatoService;
+        this.notificacionService = notificacionService;
     }
 
     public RespuestaPeticiones crearPedidoDia(CrearPedidoDiaDTO dto) {
@@ -123,14 +131,24 @@ public class PedidoDiaService {
                 .toList();
     }
 
+    @Transactional
     public RespuestaPeticiones eliminarPedidoDia(Integer idPedidoDia) {
 
         Optional<PedidoDia> pedidoDiaOpt = pedidoDiaRepo.findById(idPedidoDia);
         if (pedidoDiaOpt.isEmpty()) {
             return RespuestaPeticiones.falta_pedido_dia;
         }
+
         PedidoDia pedidoDia = pedidoDiaOpt.get();
         Pedido pedido = pedidoDia.getPedido();
+
+        if(pedido == null){
+            return RespuestaPeticiones.falta_pedido;
+        }
+
+        if (EstadosPedidos.Confirmado == pedido.getEstado()) {
+            return RespuestaPeticiones.pedido_no_editable;
+        }
 
         MenuDia menuDia = pedidoDia.getMenuDia();
         Plato plato = pedidoDia.getPlato();
@@ -150,15 +168,31 @@ public class PedidoDiaService {
         // Eliminar detalle
         pedidoDiaRepo.delete(pedidoDia);
 
+        // Si ya no quedan detalles, marcar pedido como cancelado y notificar
+        boolean quedan = pedidoDiaRepo.existsByPedido_IdPedido(pedido.getIdPedido());
+        if (!quedan) {
+            pedido.setEstado(EstadosPedidos.Cancelado);
+            pedidoRepo.save(pedido);
+            
+            // Notificar al usuario que su pedido fue cancelado
+            try {
+                notificacionService.notificarPedidoCancelado(pedido);
+            } catch (Exception e) {
+                System.err.println("Error al crear notificación de pedido cancelado: " + e.getMessage());
+            }
+        }
+
         return RespuestaPeticiones.ok;
     }
 
+    @Transactional
     public RespuestaPeticiones modificarPedidoDia(ModificarPedidoDiaDTO dto) {
 
         Optional<PedidoDia> pedidoDiaOpt = pedidoDiaRepo.findById(dto.getIdPedidoDia());
         if (pedidoDiaOpt.isEmpty()) {
             return RespuestaPeticiones.falta_pedido_dia;
         }
+
         PedidoDia pedidoDia = pedidoDiaOpt.get();
         Pedido pedido = pedidoDia.getPedido();
 
@@ -166,7 +200,11 @@ public class PedidoDiaService {
             return RespuestaPeticiones.pedido_no_editable;
         }
 
-        // info anterior
+        // Cantidades
+        int cantidadAnterior = pedido.getCantidad_personas();
+        int cantidadNueva = dto.getCantidadPersonas();
+
+        // Info anterior
         MenuDia menuDiaAnterior = pedidoDia.getMenuDia();
         Plato platoAnterior = pedidoDia.getPlato();
 
@@ -182,8 +220,9 @@ public class PedidoDiaService {
         }
         Plato platoNuevo = platoNuevoOpt.get();
 
-        // recuperar MenuPlato anterior y nuevo
+        // Recuperar MenuPlato anterior y nuevo
         Optional<MenuPlato> menuPlatoAnteriorOpt = menuPlatoRepo.findByMenuDiaAndPlato(menuDiaAnterior, platoAnterior);
+
         Optional<MenuPlato> menuPlatoNuevoOpt = menuPlatoRepo.findByMenuDiaAndPlato(menuDiaNuevo, platoNuevo);
 
         if (menuPlatoAnteriorOpt.isEmpty() || menuPlatoNuevoOpt.isEmpty()) {
@@ -193,21 +232,31 @@ public class PedidoDiaService {
         MenuPlato menuPlatoAnterior = menuPlatoAnteriorOpt.get();
         MenuPlato menuPlatoNuevo = menuPlatoNuevoOpt.get();
 
-        int cantidadPersonas = pedido.getCantidad_personas();
+        // Reponer stock anterior
+        menuPlatoService.reponerStock(
+                menuPlatoAnterior.getIdMenuPlato(),
+                cantidadAnterior);
 
-        // Reponer stock al plato anterior
-        menuPlatoService.reponerStock(menuPlatoAnterior.getIdMenuPlato(), cantidadPersonas);
+        // Validar stock nuevo con cantidad NUEVA
+        if (menuPlatoService.hayStockDisponible(
+                menuPlatoNuevo.getIdMenuPlato(),
+                cantidadNueva) == MenuPlatoService.respuestaPeticiones.stock_invalido) {
 
-        // Verificar stock en el nuevo plato
-        if (menuPlatoService.hayStockDisponible(menuPlatoNuevo.getIdMenuPlato(),
-                cantidadPersonas) == MenuPlatoService.respuestaPeticiones.stock_invalido) {
-            // devolver stock anterior porque no se pudo cambiar
-            menuPlatoService.descontarStock(menuPlatoAnterior.getIdMenuPlato(), cantidadPersonas);
+            // rollback manual del stock anterior
+            menuPlatoService.descontarStock(
+                    menuPlatoAnterior.getIdMenuPlato(),
+                    cantidadAnterior);
+
             return RespuestaPeticiones.stock_insuficiente;
         }
 
-        // Descontar del nuevo plato
-        menuPlatoService.descontarStock(menuPlatoNuevo.getIdMenuPlato(), cantidadPersonas);
+        // Descontar stock nuevo
+        menuPlatoService.descontarStock(
+                menuPlatoNuevo.getIdMenuPlato(),
+                cantidadNueva);
+
+        // Actualizar Pedido (cabecera)
+        pedido.setCantidad_personas(cantidadNueva);
 
         // Actualizar PedidoDia
         pedidoDia.setMenuDia(menuDiaNuevo);
@@ -215,16 +264,24 @@ public class PedidoDiaService {
         pedidoDia.setFechaEntrega(menuDiaNuevo.getFecha());
 
         pedidoDiaRepo.save(pedidoDia);
+        pedidoRepo.save(pedido);
 
         return RespuestaPeticiones.ok;
+    }
+
+    public List<PedidoSemanaItemDTO> listarPedidosSemana(LocalDate fechaReferencia, int offset) {
+        LocalDate lunesSemana = fechaReferencia.with(DayOfWeek.MONDAY).plusWeeks(offset);
+        LocalDate viernesSemana = lunesSemana.plusDays(4);
+
+        return pedidoDiaRepo.listarPedidosSemana(lunesSemana, viernesSemana);
     }
 
     private PedidoDiaDTO convertirADTO(PedidoDia pedidoDia) {
         PedidoDiaDTO dto = new PedidoDiaDTO();
         dto.setIdPedidoDia(pedidoDia.getId_pedido_dia());
         dto.setFechaEntrega(pedidoDia.getFechaEntrega());
-        dto.setIdPedido(pedidoDia.getPedido().getId_pedido());
-        dto.setIdMenuDia(pedidoDia.getMenuDia().getId_menu_dia());
+        dto.setIdPedido(pedidoDia.getPedido().getIdPedido());
+        dto.setIdMenuDia(pedidoDia.getMenuDia().getIdMenuDia());
         dto.setIdPlato(pedidoDia.getPlato().getId_plato());
         dto.setNombrePlato(pedidoDia.getPlato().getNombre());
         return dto;

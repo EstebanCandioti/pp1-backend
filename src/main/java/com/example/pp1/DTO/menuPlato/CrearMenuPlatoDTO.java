@@ -1,5 +1,6 @@
 package com.example.pp1.DTO.menuPlato;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,5 +18,6 @@ public class CrearMenuPlatoDTO {
     private Integer idPlato;
 
     @NotNull(message="Falta stock inicial")
+    @Min(value= 1, message="El stock debe ser mayor a 0")
     private Integer stockInicial;
 }

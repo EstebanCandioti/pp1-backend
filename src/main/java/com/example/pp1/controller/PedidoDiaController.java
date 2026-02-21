@@ -1,5 +1,6 @@
 package com.example.pp1.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,11 +15,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.pp1.DTO.pedidoDia.CrearPedidoDiaDTO;
 import com.example.pp1.DTO.pedidoDia.ModificarPedidoDiaDTO;
 import com.example.pp1.DTO.pedidoDia.PedidoDiaDTO;
+import com.example.pp1.DTO.pedidoSemanal.PedidoSemanaItemDTO;
 import com.example.pp1.Service.PedidoDiaService;
 
 import jakarta.validation.Valid;
@@ -105,6 +108,11 @@ public class PedidoDiaController {
             case ok:
                 return ResponseEntity.ok("El pedido del día se eliminó correctamente");
 
+            case pedido_no_editable:
+                return ResponseEntity.status(401).body("No se puede eliminar un pedido confirmado");
+
+            case falta_pedido:
+                return ResponseEntity.status(404).body("No se encontro el pedido correspondiente al pedidoDia");
             default:
                 return ResponseEntity.badRequest().body("No se pudo eliminar el pedido del día");
         }
@@ -153,5 +161,15 @@ public class PedidoDiaController {
             default:
                 return ResponseEntity.badRequest().body("No se pudo modificar el pedido del día");
         }
+    }
+
+    @GetMapping("/semana")
+    public ResponseEntity<?> listarPedidosSemana(
+            @RequestParam LocalDate fechaReferencia,
+            @RequestParam(defaultValue = "0") int offset) {
+        List<PedidoSemanaItemDTO> lista = service.listarPedidosSemana(fechaReferencia, offset);
+        if (lista.isEmpty())
+            return ResponseEntity.status(404).body("No hay pedidos para esa semana");
+        return ResponseEntity.ok(lista);
     }
 }

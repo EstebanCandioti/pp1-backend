@@ -1,5 +1,6 @@
 package com.example.pp1.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -16,10 +17,12 @@ public class MenuDiaService {
     
     private final MenuDiaRepository repo;
     private final UsuarioService serviceUsuario;
+    private final NotificacionService notificacionService;
 
-    public MenuDiaService(MenuDiaRepository repo, UsuarioService serviceUsuario){
+    public MenuDiaService(MenuDiaRepository repo, UsuarioService serviceUsuario, NotificacionService notificacionService){
         this.repo=repo;
         this.serviceUsuario=serviceUsuario;
+        this.notificacionService=notificacionService;
     }
 
     public respuestaPeticiones crearMenuDia(CrearMenuDiaDTO menu){
@@ -54,10 +57,62 @@ public class MenuDiaService {
         if(!menu.isPresent()){
             return respuestaPeticiones.falta_menu;
         }
-        Boolean estado= menu.get().getPublicado();
-        menu.get().setPublicado(!estado);
+        Boolean estadoAnterior = menu.get().getPublicado();
+        Boolean estadoNuevo = !estadoAnterior;
+        menu.get().setPublicado(estadoNuevo);
         repo.save(menu.get());
+        
+        // Si se está publicando (cambió de false a true), notificar usuarios
+        if (estadoNuevo && !estadoAnterior) {
+            try {
+                MenuDia menuPublicado = menu.get();
+                LocalDate fechaMenu = menuPublicado.getFecha();
+                
+                // Obtener día de la semana del menú
+                DayOfWeek diaSemanaJava = fechaMenu.getDayOfWeek();
+                String diaSemanaStr = convertirDayOfWeekAString(diaSemanaJava);
+                
+                // Obtener todos los usuarios activos
+                List<com.example.pp1.Entity.Usuario> todosUsuarios = serviceUsuario.obtenerUsuarios();
+                
+                // Filtrar usuarios activos que tengan ese día en su asistencia
+                todosUsuarios.stream()
+                    .filter(u -> u.getActivo() != null && u.getActivo())
+                    .filter(u -> tieneAsistenciaEnDia(u, diaSemanaStr))
+                    .forEach(usuario -> {
+                        try {
+                            notificacionService.notificarMenuPublicado(menuPublicado, usuario);
+                        } catch (Exception e) {
+                            System.err.println("Error al notificar usuario " + usuario.getIdUsuario() + " sobre menú publicado: " + e.getMessage());
+                        }
+                    });
+                    
+            } catch (Exception e) {
+                System.err.println("Error general al crear notificaciones de menú publicado: " + e.getMessage());
+            }
+        }
+        
         return respuestaPeticiones.menu_actualizado;
+    }
+    
+    private String convertirDayOfWeekAString(DayOfWeek day) {
+        return switch(day) {
+            case MONDAY -> "LUNES";
+            case TUESDAY -> "MARTES";
+            case WEDNESDAY -> "MIERCOLES";
+            case THURSDAY -> "JUEVES";
+            case FRIDAY -> "VIERNES";
+            case SATURDAY -> "SABADO";
+            case SUNDAY -> "DOMINGO";
+        };
+    }
+    
+    private boolean tieneAsistenciaEnDia(com.example.pp1.Entity.Usuario usuario, String dia) {
+        if (usuario.getDiasAsistencia() == null || usuario.getDiasAsistencia().isEmpty()) {
+            return false;
+        }
+        return usuario.getDiasAsistencia().stream()
+            .anyMatch(asist -> dia.equalsIgnoreCase(asist.getDia()));
     }
 
     public List<MenuDia> obtenerMenusDia(){
@@ -74,6 +129,16 @@ public class MenuDiaService {
     public List<MenuDia> obtenerMenusDiaFecha(LocalDate fecha){
         List<MenuDia> menus = repo.findByFecha(fecha);
         return menus;
+    }
+
+    public List<MenuDia> obtenerMenusSemana(LocalDate fechaReferencia, int offset) {
+        LocalDate inicioSemana = fechaReferencia.with(DayOfWeek.MONDAY).plusWeeks(offset);
+        LocalDate finSemana = inicioSemana.plusDays(4);
+        System.out.println("fechaReferencia=" + fechaReferencia);
+        System.out.println("offset=" + offset);
+        System.out.println("inicioSemana=" + inicioSemana);
+        System.out.println("finSemana=" + finSemana);
+        return repo.findByFechaBetween(inicioSemana, finSemana);
     }
 
     public enum respuestaPeticiones{

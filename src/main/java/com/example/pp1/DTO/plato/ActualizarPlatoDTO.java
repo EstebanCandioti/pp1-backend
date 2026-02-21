@@ -24,9 +24,6 @@ public class ActualizarPlatoDTO {
     @NotBlank(message = "La descripcion no puede quedar vacia")
     public String descripcion;
 
-    
-    @NotNull(message= "La imagen no puede quedar vacia")
-    @NotBlank(message = "La imagen no puede quedar vacia")
     public String imagen;
 
     @NotNull(message= "La categoria no puede quedar vacia")

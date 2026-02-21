@@ -20,6 +20,7 @@ public class CrearMenuDiaDTO {
     @NotNull(message="La descripcion no puede quedar vacia")
     private String descripcion;
 
+    @NotNull(message="Debe indicar si el menu esta publicado o no")
     private Boolean publicado;
 
     @NotNull(message="El usuario no puede quedar vacio")

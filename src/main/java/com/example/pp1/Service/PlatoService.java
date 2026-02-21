@@ -42,18 +42,20 @@ public class PlatoService {
         return respuestasSolicitudes.plato_actualizado;
     }
 
-    public respuestasSolicitudes borrarPlato (Integer id){
+    public respuestasSolicitudes cambiarEstadoPlato (Integer id){
         Optional<Plato> plato = repo.findById(id);
         if(!plato.isPresent()){
             return respuestasSolicitudes.falta_plato;
         }
-        repo.deleteById(id);
+        boolean activo=plato.get().getActivo();
+        plato.get().setActivo(!activo);
+        repo.save(plato.get());
         return respuestasSolicitudes.plato_borrado;
     }
     
 
     public List<Plato> traerPlatos(){
-        return repo.findAll(); 
+        return repo.findByActivoTrue(); 
     }
 
     public Optional<Plato> traerPlato(Integer id){

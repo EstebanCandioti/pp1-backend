@@ -10,8 +10,7 @@ import lombok.Setter;
 @Getter
 @NoArgsConstructor
 public class ModificarPedidoDTO {
-    
-    @NotNull(message = "No puede ser vacio el id del pedido")
+
     private Integer id;
 
     @NotNull(message = "No puede ser vacio la cantidad de personas")

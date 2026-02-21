@@ -56,7 +56,7 @@ public class PlatoController {
         return ResponseEntity.status(401).body("Hubo un error creando el plato");
     }
 
-    @PutMapping("modificar/{id}")
+    @PutMapping("/modificar/{id}")
     public ResponseEntity<String> modificarPlato(@PathVariable Integer id, @Valid @RequestBody ActualizarPlatoDTO platoDTO, BindingResult resultado) {
         if(resultado.hasErrors()){
             String errores = resultado.getFieldErrors().stream().map(FieldError::getDefaultMessage).collect(Collectors.joining(" , "));
@@ -69,9 +69,9 @@ public class PlatoController {
         return ResponseEntity.ok("El plato se a modificado correctamente");
     }
     
-    @DeleteMapping("/borrar/{id}")
-    public ResponseEntity<String> borrarPlato(@PathVariable Integer id){
-        PlatoService.respuestasSolicitudes respuesta= service.borrarPlato(id);
+    @DeleteMapping("/estado/{id}")
+    public ResponseEntity<String> cambiarEstadoPlato(@PathVariable Integer id){
+        PlatoService.respuestasSolicitudes respuesta= service.cambiarEstadoPlato(id);
         if(respuesta== PlatoService.respuestasSolicitudes.falta_plato){
             return ResponseEntity.status(404).body("No se a encontrado el plato a borrar");
         }

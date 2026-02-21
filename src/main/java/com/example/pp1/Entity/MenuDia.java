@@ -24,7 +24,7 @@ public class MenuDia {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_menu_dia")
-    private Integer id_menu_dia;
+    private Integer idMenuDia;
 
     @Column(name = "fecha")
     private LocalDate fecha;

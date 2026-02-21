@@ -46,6 +46,9 @@ public class UsuarioController {
         if(respuesta==UsuarioService.resultadoPeticiones.ok){
             return ResponseEntity.ok("El usuario se a actualizado  correctamente");
         }
+        if(respuesta==UsuarioService.resultadoPeticiones.usuario_inactivo){
+            return ResponseEntity.status(400).body("El usuario se encuentra inactivo");
+        }
         return ResponseEntity.status(400).body("No se ha encontrado al usuario");
     }
 
@@ -99,6 +102,9 @@ public class UsuarioController {
         }
         if( respuesta== UsuarioService.resultadoPeticiones.password_incorrecta){
             return ResponseEntity.badRequest().body("Contrasenia incorrecta");
+        }
+        if(respuesta== UsuarioService.resultadoPeticiones.usuario_inactivo){
+            return ResponseEntity.status(400).body("El usuario se encuentra inactivo");
         }
         
         return ResponseEntity.status(404).body("No se encontro un usuario con este email");

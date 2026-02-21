@@ -1,5 +1,6 @@
 package com.example.pp1.DTO.pedidoDia;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,4 +18,8 @@ public class ModificarPedidoDiaDTO {
 
     @NotNull(message = "El id del menú del día es obligatorio")
     private Integer idMenuDiaNuevo;
+
+    @NotNull(message="Se debe seleccionar la cantidad  de personas para el pedido")
+    @Min(value=1, message="Debe seleccionar minimamente una persona para el pedido")
+    private Integer cantidadPersonas;
 }

@@ -16,29 +16,29 @@ import lombok.Setter;
 public class RegistrarUsuarioDTO {
 
     @NotNull(message= "El nombre no puede quedar vacio")
-    @NotBlank(message = "El nombre no puede quedar vacío")
+    @NotBlank(message = "El nombre no puede quedar en blanco")
     private String nombre;
 
     @NotNull(message= "El apellido no puede quedar vacio")
-    @NotBlank(message = "El apellido no puede quedar vacío")
+    @NotBlank(message = "El apellido no puede quedar en blanco")
     private String apellido;
 
     @NotNull(message= "El email no puede quedar vacio")
-    @NotBlank(message = "El email no puede quedar vacío")
+    @NotBlank(message = "El email no puede quedar en blanco")
     @Email(message = "El email no tiene un formato válido")
     private String email;
 
     @NotNull(message= "La password no puede quedar vacia")
-    @NotBlank(message = "La contraseña no puede quedar vacía")
+    @NotBlank(message = "La password no puede quedar en blanco")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     private String password;
 
     @NotNull(message= "El no telefono puede quedar vacio")
-    @NotBlank(message = "El teléfono no puede quedar vacío")
+    @NotBlank(message = "El teléfono no puede quedar en blanco")
     private String telefono;
 
     @NotNull(message= "La direccion no puede quedar vacia")
-    @NotBlank(message = "La dirección no puede quedar vacía")
+    @NotBlank(message = "La dirección no puede quedar en blanco")
     private String direccion;
 
     @NotNull
