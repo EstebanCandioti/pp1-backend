@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.pp1.DTO.usuario.ActualizarUsuarioDTO;
@@ -14,15 +15,16 @@ import com.example.pp1.repository.UsuarioRepository;
 
 @Service
 public class UsuarioService {
- 
-    
+
+    private final PasswordEncoder passwordEncoder;
     private final UsuarioRepository repo;
 
-    public UsuarioService (UsuarioRepository repo){
-        this.repo=repo;
+    public UsuarioService(UsuarioRepository repo, PasswordEncoder passwordEncoder) {
+        this.repo = repo;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public resultadoPeticiones estadoUsuario(Integer id){
+    public resultadoPeticiones estadoUsuario(Integer id) {
         Optional<Usuario> usuario = repo.findById(id);
         if (usuario.isPresent()) {
             if (usuario.get().getActivo() == true) {
@@ -39,7 +41,7 @@ public class UsuarioService {
         }
     }
 
-    public resultadoPeticiones registrarUsuario(RegistrarUsuarioDTO usuario){
+    public resultadoPeticiones registrarUsuario(RegistrarUsuarioDTO usuario) {
         Optional<Usuario> usu = repo.findByCorreoIgnoreCase(usuario.getEmail());
         if (usu.isPresent()) {
             return resultadoPeticiones.email_duplicado;
@@ -52,7 +54,7 @@ public class UsuarioService {
         user.setDireccion(usuario.getDireccion());
         user.setEs_usuario_restaurante(usuario.getUsuarioRestaurante());
         user.setTelefono(usuario.getTelefono());
-        user.setPassword(usuario.getPassword());
+        user.setPassword(passwordEncoder.encode(usuario.getPassword()));
         List<UsuarioAsistencia> dias = new ArrayList<>();
         if (usuario.getDiasAsistencia() != null && !usuario.getDiasAsistencia().isEmpty()) {
             for (String dia : usuario.getDiasAsistencia()) {
@@ -70,10 +72,10 @@ public class UsuarioService {
         return resultadoPeticiones.ok;
     }
 
-    public resultadoPeticiones actualizarUsuario(ActualizarUsuarioDTO usuario){
+    public resultadoPeticiones actualizarUsuario(ActualizarUsuarioDTO usuario) {
         Optional<Usuario> usu = repo.findById(usuario.getId());
         if (usu.isPresent()) {
-            if(usu.get().getActivo()==false){
+            if (usu.get().getActivo() == false) {
                 return resultadoPeticiones.usuario_inactivo;
             }
             usu.get().setApellido(usuario.getApellido());
@@ -81,14 +83,14 @@ public class UsuarioService {
             usu.get().setDireccion(usuario.getDireccion());
             usu.get().setTelefono(usuario.getTelefono());
             List<UsuarioAsistencia> diasActuales = usu.get().getDiasAsistencia();
-            if(diasActuales == null){
-                diasActuales= new ArrayList<>();
+            if (diasActuales == null) {
+                diasActuales = new ArrayList<>();
                 usu.get().setDiasAsistencia(diasActuales);
-            }else{
+            } else {
                 diasActuales.clear();
             }
 
-            for(String dia: usuario.getDiasAsistencia()){
+            for (String dia : usuario.getDiasAsistencia()) {
                 UsuarioAsistencia asistencia = new UsuarioAsistencia();
                 asistencia.setDia(dia);
                 asistencia.setUsuario(usu.get());
@@ -101,35 +103,34 @@ public class UsuarioService {
         }
     }
 
-    public List<Usuario> obtenerUsuarios(){
+    public List<Usuario> obtenerUsuarios() {
         return repo.findAll();
     }
 
-    public Optional<Usuario> obtenerUsuario(Integer id){
+    public Optional<Usuario> obtenerUsuario(Integer id) {
         return repo.findById(id);
     }
 
-    public Optional<Usuario> obtenerUsuarioPorEmail(String email){
+    public Optional<Usuario> obtenerUsuarioPorEmail(String email) {
         return repo.findByCorreoIgnoreCase(email);
     }
 
-    public resultadoPeticiones login(String email, String password){
+    public resultadoPeticiones login(String email, String password) {
         Optional<Usuario> user = repo.findByCorreoIgnoreCase(email);
-        if(user.isEmpty()){
+        if (user.isEmpty()) {
             return resultadoPeticiones.falta_usuario;
         }
         if (user.get().getActivo() == false) {
             return resultadoPeticiones.usuario_inactivo;
         }
-        if(user.get().getPassword().equals(password)){
+        if (passwordEncoder.matches(password, user.get().getPassword())) {
             return resultadoPeticiones.logeado;
-        }else{
-            return  resultadoPeticiones.password_incorrecta;
+        } else {
+            return resultadoPeticiones.password_incorrecta;
         }
     }
-    
 
-    public enum resultadoPeticiones{
+    public enum resultadoPeticiones {
         ok,
         email_duplicado,
         falta_usuario,
@@ -140,4 +141,5 @@ public class UsuarioService {
         usuario_inactivo
 
     }
+
 }

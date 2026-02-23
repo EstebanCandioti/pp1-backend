@@ -2,6 +2,7 @@ package com.example.pp1.Entity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
@@ -36,6 +37,7 @@ public class Usuario {
     @Column(unique=true)
     private String correo;
 
+    @JsonIgnore
     @Column(name="password")
     private String password;
 
