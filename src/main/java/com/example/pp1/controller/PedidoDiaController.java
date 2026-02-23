@@ -77,7 +77,10 @@ public class PedidoDiaController {
         }
     }
 
-    // Listar PedidoDia por idPedido
+    /**
+     * Listar PedidoDia ACTIVOS por idPedido
+     * Usado por "Mi Pedido" - Solo muestra pedidos modificables
+     */
     @GetMapping("/pedido/{idPedido}")
     public ResponseEntity<?> listarPorPedido(@PathVariable Integer idPedido) {
 
@@ -91,7 +94,24 @@ public class PedidoDiaController {
         return ResponseEntity.ok(lista);
     }
 
-    // Eliminar un PedidoDia (y reponer stock)
+    /**
+     * Listar TODOS los PedidoDia por idPedido (incluyendo cancelados)
+     * Usado por "Historial de Pedidos" - Muestra el historial completo
+     */
+    @GetMapping("/pedido/{idPedido}/historial")
+    public ResponseEntity<?> listarPorPedidoCompleto(@PathVariable Integer idPedido) {
+
+        List<PedidoDiaDTO> lista = service.listarPorPedidoCompleto(idPedido);
+
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body("No se encontraron registros para este pedido");
+        }
+
+        return ResponseEntity.ok(lista);
+    }
+
+    // Eliminar un PedidoDia (soft delete - marca como inactivo)
     @DeleteMapping("/{idPedidoDia}")
     public ResponseEntity<String> eliminarPedidoDia(@PathVariable Integer idPedidoDia) {
 
@@ -112,7 +132,7 @@ public class PedidoDiaController {
                 return ResponseEntity.status(401).body("No se puede eliminar un pedido confirmado");
 
             case falta_pedido:
-                return ResponseEntity.status(404).body("No se encontro el pedido correspondiente al pedidoDia");
+                return ResponseEntity.status(404).body("No se encontró el pedido correspondiente al pedidoDia");
             default:
                 return ResponseEntity.badRequest().body("No se pudo eliminar el pedido del día");
         }

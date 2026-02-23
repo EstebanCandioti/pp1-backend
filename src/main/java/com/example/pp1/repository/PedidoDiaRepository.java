@@ -13,6 +13,23 @@ import com.example.pp1.Entity.PedidoDia;
 
 public interface PedidoDiaRepository extends JpaRepository<PedidoDia, Integer> {
 
+        // Métodos que consideran soft delete (solo activos)
+        Boolean existsByPedido_IdPedidoAndActivoTrue(Integer idPedido);
+
+        List<PedidoDia> findByPedido_IdPedidoAndActivoTrue(Integer idPedido);
+
+        List<PedidoDia> findByPedido_Usuario_IdUsuarioAndFechaEntregaBetweenAndActivoTrue(
+                        Integer idUsuario,
+                        LocalDate inicio,
+                        LocalDate fin);
+
+        List<PedidoDia> findByMenuDia_IdMenuDiaAndActivoTrue(Integer idMenuDia);
+
+        Optional<PedidoDia> findByPedido_IdPedidoAndMenuDia_IdMenuDiaAndActivoTrue(
+                        Integer idPedido,
+                        Integer idMenuDia);
+
+        // Métodos que NO consideran soft delete (para historial completo)
         Boolean existsByPedido_IdPedido(Integer idPedido);
 
         List<PedidoDia> findByPedido_IdPedido(Integer idPedido);
@@ -28,8 +45,9 @@ public interface PedidoDiaRepository extends JpaRepository<PedidoDia, Integer> {
                         Integer idPedido,
                         Integer idMenuDia);
 
+        // Query personalizada para semana - SOLO ACTIVOS
         @Query("""
-                                     select new com.example.pp1.DTO.pedidoSemanal.PedidoSemanaItemDTO(
+                        select new com.example.pp1.DTO.pedidoSemanal.PedidoSemanaItemDTO(
                             p.idPedido,
                             p.fechaPedido,
                             p.estado,
@@ -53,6 +71,7 @@ public interface PedidoDiaRepository extends JpaRepository<PedidoDia, Integer> {
                         join pd.plato pl
                         join pd.menuDia md
                         where p.fechaPedido between :fechaInicio and :fechaFin
+                        and pd.activo = true
                         order by p.fechaPedido asc, u.apellido asc, u.nombre asc
                         """)
         List<PedidoSemanaItemDTO> listarPedidosSemana(

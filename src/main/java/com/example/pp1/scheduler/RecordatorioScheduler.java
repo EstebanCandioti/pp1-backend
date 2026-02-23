@@ -33,7 +33,11 @@ public class RecordatorioScheduler {
         System.out.println("==========================================\n");
         
         try {
+            // Recordatorios para empleados (pedidos faltantes)
             recordatorioService.enviarRecordatoriosJueves();
+            
+            // Recordatorios para admin (menús faltantes)
+            recordatorioService.enviarRecordatoriosMenusJueves();
         } catch (Exception e) {
             System.err.println("ERROR CRÍTICO en recordatorios jueves: " + e.getMessage());
             e.printStackTrace();
@@ -52,21 +56,30 @@ public class RecordatorioScheduler {
         System.out.println("==========================================\n");
         
         try {
+            // Recordatorios para empleados (pedidos faltantes)
             recordatorioService.enviarRecordatoriosViernes();
+            
+            // Recordatorios para admin (menús faltantes)
+            recordatorioService.enviarRecordatoriosMenusViernes();
         } catch (Exception e) {
             System.err.println("ERROR CRÍTICO en recordatorios viernes: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-
-    @Scheduled(cron = "0 */5 * * * *")
-    public void testRecordatoriosCada5Minutos() {
-       System.out.println("\n========== TEST: Recordatorios cada 5 min ==========");
-       try {
-          recordatorioService.enviarRecordatoriosJueves();
-       } catch (Exception e) {
-            System.err.println("ERROR en test de recordatorios: " + e.getMessage());
-         }
-     }
+    /**
+     * MÉTODO DE TESTING
+     * 
+     * Ejecuta cada 5 minutos para probar que el scheduler funciona.
+     * Usar solo durante desarrollo/testing.
+     */
+    // @Scheduled(cron = "0 */5 * * * *")
+    // public void testRecordatoriosCada5Minutos() {
+    //     System.out.println("\n========== TEST: Recordatorios cada 5 min ==========");
+    //     try {
+    //         recordatorioService.enviarRecordatoriosJueves();
+    //     } catch (Exception e) {
+    //         System.err.println("ERROR en test de recordatorios: " + e.getMessage());
+    //     }
+    // }
 }

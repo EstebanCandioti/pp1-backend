@@ -16,4 +16,5 @@ public class PedidoDiaDTO {
     private Integer idMenuDia;
     private Integer idPlato;
     private String nombrePlato;
+    private Boolean activo;  // Nuevo campo para saber si está cancelado
 }

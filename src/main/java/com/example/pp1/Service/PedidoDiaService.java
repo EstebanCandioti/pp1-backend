@@ -72,7 +72,6 @@ public class PedidoDiaService {
         }
         Pedido pedido = pedidoOpt.get();
 
-        // si el pedido está confirmado, no debería poder agregarse un día nuevo
         if (pedido.getEstado() == Pedido.EstadosPedidos.Confirmado) {
             return RespuestaPeticiones.pedido_no_editable;
         }
@@ -89,7 +88,6 @@ public class PedidoDiaService {
         }
         Plato plato = platoOpt.get();
 
-        // Buscar MenuPlato para controlar stock
         Optional<MenuPlato> menuPlatoOpt = menuPlatoRepo.findByMenuDiaAndPlato(menuDia, plato);
         if (menuPlatoOpt.isEmpty()) {
             return RespuestaPeticiones.falta_menu_plato;
@@ -98,34 +96,46 @@ public class PedidoDiaService {
 
         int cantidadPersonas = pedido.getCantidad_personas();
 
-        // Validar stock usando el service de MenuPlato
         if (menuPlatoService.hayStockDisponible(menuPlato.getIdMenuPlato(),
                 cantidadPersonas) == MenuPlatoService.respuestaPeticiones.stock_invalido) {
             return RespuestaPeticiones.stock_insuficiente;
         }
 
-        // Descontar stock
         menuPlatoService.descontarStock(menuPlato.getIdMenuPlato(), cantidadPersonas);
 
         PedidoDia pedidoDia = new PedidoDia();
         pedidoDia.setPedido(pedido);
         pedidoDia.setMenuDia(menuDia);
         pedidoDia.setPlato(plato);
+        pedidoDia.setActivo(true);
 
         LocalDate fechaEntrega = dto.getFechaEntrega() != null
                 ? dto.getFechaEntrega()
                 : menuDia.getFecha();
 
         pedidoDia.setFechaEntrega(fechaEntrega);
-
         pedidoDiaRepo.save(pedidoDia);
 
         return RespuestaPeticiones.ok;
     }
 
+    /**
+     * Listar pedidos de un pedido - SOLO ACTIVOS
+     * Usado por "Mi Pedido" para mostrar pedidos modificables
+     */
     public List<PedidoDiaDTO> listarPorPedido(Integer idPedido) {
-        List<PedidoDia> lista = pedidoDiaRepo.findByPedido_IdPedido(idPedido);
+        List<PedidoDia> lista = pedidoDiaRepo.findByPedido_IdPedidoAndActivoTrue(idPedido);
+        return lista.stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
 
+    /**
+     * Listar TODOS los pedidos de un pedido - Incluyendo cancelados
+     * Usado por "Historial de Pedidos" para mostrar el historial completo
+     */
+    public List<PedidoDiaDTO> listarPorPedidoCompleto(Integer idPedido) {
+        List<PedidoDia> lista = pedidoDiaRepo.findByPedido_IdPedido(idPedido);
         return lista.stream()
                 .map(this::convertirADTO)
                 .toList();
@@ -162,19 +172,18 @@ public class PedidoDiaService {
         MenuPlato menuPlato = menuPlatoOpt.get();
         int cantidadPersonas = pedido.getCantidad_personas();
 
-        // Reponer stock
         menuPlatoService.reponerStock(menuPlato.getIdMenuPlato(), cantidadPersonas);
 
-        // Eliminar detalle
-        pedidoDiaRepo.delete(pedidoDia);
+        // SOFT DELETE
+        pedidoDia.setActivo(false);
+        pedidoDiaRepo.save(pedidoDia);
 
-        // Si ya no quedan detalles, marcar pedido como cancelado y notificar
-        boolean quedan = pedidoDiaRepo.existsByPedido_IdPedido(pedido.getIdPedido());
-        if (!quedan) {
+        boolean quedanActivos = pedidoDiaRepo.existsByPedido_IdPedidoAndActivoTrue(pedido.getIdPedido());
+        
+        if (!quedanActivos) {
             pedido.setEstado(EstadosPedidos.Cancelado);
             pedidoRepo.save(pedido);
             
-            // Notificar al usuario que su pedido fue cancelado
             try {
                 notificacionService.notificarPedidoCancelado(pedido);
             } catch (Exception e) {
@@ -200,11 +209,9 @@ public class PedidoDiaService {
             return RespuestaPeticiones.pedido_no_editable;
         }
 
-        // Cantidades
         int cantidadAnterior = pedido.getCantidad_personas();
         int cantidadNueva = dto.getCantidadPersonas();
 
-        // Info anterior
         MenuDia menuDiaAnterior = pedidoDia.getMenuDia();
         Plato platoAnterior = pedidoDia.getPlato();
 
@@ -220,9 +227,7 @@ public class PedidoDiaService {
         }
         Plato platoNuevo = platoNuevoOpt.get();
 
-        // Recuperar MenuPlato anterior y nuevo
         Optional<MenuPlato> menuPlatoAnteriorOpt = menuPlatoRepo.findByMenuDiaAndPlato(menuDiaAnterior, platoAnterior);
-
         Optional<MenuPlato> menuPlatoNuevoOpt = menuPlatoRepo.findByMenuDiaAndPlato(menuDiaNuevo, platoNuevo);
 
         if (menuPlatoAnteriorOpt.isEmpty() || menuPlatoNuevoOpt.isEmpty()) {
@@ -232,33 +237,17 @@ public class PedidoDiaService {
         MenuPlato menuPlatoAnterior = menuPlatoAnteriorOpt.get();
         MenuPlato menuPlatoNuevo = menuPlatoNuevoOpt.get();
 
-        // Reponer stock anterior
-        menuPlatoService.reponerStock(
-                menuPlatoAnterior.getIdMenuPlato(),
-                cantidadAnterior);
+        menuPlatoService.reponerStock(menuPlatoAnterior.getIdMenuPlato(), cantidadAnterior);
 
-        // Validar stock nuevo con cantidad NUEVA
-        if (menuPlatoService.hayStockDisponible(
-                menuPlatoNuevo.getIdMenuPlato(),
-                cantidadNueva) == MenuPlatoService.respuestaPeticiones.stock_invalido) {
-
-            // rollback manual del stock anterior
-            menuPlatoService.descontarStock(
-                    menuPlatoAnterior.getIdMenuPlato(),
-                    cantidadAnterior);
-
+        if (menuPlatoService.hayStockDisponible(menuPlatoNuevo.getIdMenuPlato(), cantidadNueva) 
+                == MenuPlatoService.respuestaPeticiones.stock_invalido) {
+            menuPlatoService.descontarStock(menuPlatoAnterior.getIdMenuPlato(), cantidadAnterior);
             return RespuestaPeticiones.stock_insuficiente;
         }
 
-        // Descontar stock nuevo
-        menuPlatoService.descontarStock(
-                menuPlatoNuevo.getIdMenuPlato(),
-                cantidadNueva);
+        menuPlatoService.descontarStock(menuPlatoNuevo.getIdMenuPlato(), cantidadNueva);
 
-        // Actualizar Pedido (cabecera)
         pedido.setCantidad_personas(cantidadNueva);
-
-        // Actualizar PedidoDia
         pedidoDia.setMenuDia(menuDiaNuevo);
         pedidoDia.setPlato(platoNuevo);
         pedidoDia.setFechaEntrega(menuDiaNuevo.getFecha());
@@ -272,7 +261,6 @@ public class PedidoDiaService {
     public List<PedidoSemanaItemDTO> listarPedidosSemana(LocalDate fechaReferencia, int offset) {
         LocalDate lunesSemana = fechaReferencia.with(DayOfWeek.MONDAY).plusWeeks(offset);
         LocalDate viernesSemana = lunesSemana.plusDays(4);
-
         return pedidoDiaRepo.listarPedidosSemana(lunesSemana, viernesSemana);
     }
 
@@ -284,6 +272,7 @@ public class PedidoDiaService {
         dto.setIdMenuDia(pedidoDia.getMenuDia().getIdMenuDia());
         dto.setIdPlato(pedidoDia.getPlato().getId_plato());
         dto.setNombrePlato(pedidoDia.getPlato().getNombre());
+        dto.setActivo(pedidoDia.getActivo() != null ? pedidoDia.getActivo() : true);
         return dto;
     }
 }

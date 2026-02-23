@@ -27,6 +27,9 @@ public class PedidoDia {
     @Column(name="fecha_entrega")
     private LocalDate fechaEntrega;
 
+    @Column(name="activo", nullable=false, columnDefinition="BOOLEAN DEFAULT true")
+    private Boolean activo = true;
+
     @ManyToOne
     @JoinColumn(name="id_pedido", nullable=false)
     private Pedido pedido;

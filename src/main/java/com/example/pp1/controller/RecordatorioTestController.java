@@ -13,8 +13,6 @@ import com.example.pp1.Service.RecordatorioService;
  * 
  * Permite ejecutar los recordatorios manualmente sin esperar
  * al scheduler automático.
- * 
- * ⚠️ ELIMINAR O COMENTAR EN PRODUCCIÓN
  */
 @RestController
 @RequestMapping("/test/recordatorios")
@@ -56,6 +54,42 @@ public class RecordatorioTestController {
             e.printStackTrace();
             return ResponseEntity.status(500)
                     .body("Error al ejecutar recordatorios: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test: Ejecutar recordatorio de menús jueves manualmente
+     * POST http://localhost:8080/test/recordatorios/menus-jueves
+     */
+    @PostMapping("/menus-jueves")
+    public ResponseEntity<String> testRecordatoriosMenusJueves() {
+        System.out.println("\n[TEST MANUAL] Ejecutando recordatorios MENÚS JUEVES");
+        
+        try {
+            recordatorioService.enviarRecordatoriosMenusJueves();
+            return ResponseEntity.ok("Recordatorios de menús (jueves) ejecutados exitosamente. Verificá los logs y las notificaciones en la base de datos.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("Error al ejecutar recordatorios de menús: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test: Ejecutar recordatorio de menús viernes manualmente
+     * POST http://localhost:8080/test/recordatorios/menus-viernes
+     */
+    @PostMapping("/menus-viernes")
+    public ResponseEntity<String> testRecordatoriosMenusViernes() {
+        System.out.println("\n[TEST MANUAL] Ejecutando recordatorios MENÚS VIERNES");
+        
+        try {
+            recordatorioService.enviarRecordatoriosMenusViernes();
+            return ResponseEntity.ok("Recordatorios de menús (viernes) ejecutados exitosamente. Verificá los logs y las notificaciones en la base de datos.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("Error al ejecutar recordatorios de menús: " + e.getMessage());
         }
     }
 }
